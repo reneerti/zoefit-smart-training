@@ -14,7 +14,165 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_insights: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          metrics: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          metrics?: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          metrics?: Json | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      body_measurements: {
+        Row: {
+          biceps: number | null
+          chest: number | null
+          created_at: string
+          hips: number | null
+          id: string
+          recorded_at: string
+          thighs: number | null
+          user_id: string
+          waist: number | null
+        }
+        Insert: {
+          biceps?: number | null
+          chest?: number | null
+          created_at?: string
+          hips?: number | null
+          id?: string
+          recorded_at?: string
+          thighs?: number | null
+          user_id: string
+          waist?: number | null
+        }
+        Update: {
+          biceps?: number | null
+          chest?: number | null
+          created_at?: string
+          hips?: number | null
+          id?: string
+          recorded_at?: string
+          thighs?: number | null
+          user_id?: string
+          waist?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weight_records: {
+        Row: {
+          created_at: string
+          id: string
+          recorded_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      workout_sessions: {
+        Row: {
+          completed_at: string
+          created_at: string
+          day_id: string
+          day_name: string
+          duration: number
+          exercises_completed: number
+          id: string
+          notes: string | null
+          total_exercises: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          day_id: string
+          day_name: string
+          duration?: number
+          exercises_completed?: number
+          id?: string
+          notes?: string | null
+          total_exercises?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          day_id?: string
+          day_name?: string
+          duration?: number
+          exercises_completed?: number
+          id?: string
+          notes?: string | null
+          total_exercises?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

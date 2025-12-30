@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Sparkles, TrendingUp, AlertTriangle, Award, 
   ChevronRight, Brain, Loader2, BarChart3,
@@ -6,56 +6,9 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useWorkoutStore } from '@/store/workoutStore';
 import { AIInsight } from '@/types/workout';
 import { useToast } from '@/hooks/use-toast';
-
-const demoInsights: AIInsight[] = [
-  {
-    id: '1',
-    date: new Date().toISOString(),
-    type: 'achievement',
-    title: '🏆 Sequência Incrível!',
-    content: 'Você completou 7 dias seguidos de treino! Isso coloca você no top 5% dos usuários do ZoeFIT. Continue assim para resultados ainda melhores.',
-    metrics: [
-      { label: 'Treinos seguidos', value: '7', trend: 'up' },
-      { label: 'Melhor sequência', value: '7 dias', trend: 'up' }
-    ]
-  },
-  {
-    id: '2',
-    date: new Date().toISOString(),
-    type: 'progress',
-    title: '📈 Progresso nos Treinos HIIT',
-    content: 'Seus treinos HIIT estão 15% mais longos que na semana passada. Isso indica melhor condicionamento cardiovascular e resistência.',
-    metrics: [
-      { label: 'Duração média HIIT', value: '68 min', trend: 'up' },
-      { label: 'Exercícios concluídos', value: '100%', trend: 'stable' }
-    ]
-  },
-  {
-    id: '3',
-    date: new Date().toISOString(),
-    type: 'recommendation',
-    title: '💡 Sugestão de Otimização',
-    content: 'Notei que você completa treinos de força mais rápido nas segundas-feiras. Considere aumentar a carga em 5-10% no Supino Reto para maximizar hipertrofia.',
-    metrics: [
-      { label: 'Tempo médio segunda', value: '52 min', trend: 'down' },
-      { label: 'Potencial de ganho', value: '+10%' }
-    ]
-  },
-  {
-    id: '4',
-    date: new Date().toISOString(),
-    type: 'warning',
-    title: '⚠️ Atenção ao Core',
-    content: 'Seus exercícios de core têm taxa de conclusão menor (85%). Fortalecer o core é essencial para prevenir lesões e melhorar a postura.',
-    metrics: [
-      { label: 'Taxa conclusão core', value: '85%', trend: 'down' },
-      { label: 'Meta recomendada', value: '95%' }
-    ]
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
 
 const InsightCard = ({ insight }: { insight: AIInsight }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -128,23 +81,215 @@ const InsightCard = ({ insight }: { insight: AIInsight }) => {
 export const InsightsPage = () => {
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { stats, sessions } = useWorkoutStore();
+  const [stats, setStats] = useState({
+    totalWorkouts: 0,
+    thisWeekWorkouts: 0,
+    totalMinutes: 0,
+    averageSessionTime: 0,
+    streak: 0,
+    exercisesCompleted: 0,
+    weeklyProgress: [0, 0, 0, 0, 0, 0, 0]
+  });
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchStats();
+    fetchSavedInsights();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: sessions } = await supabase
+        .from('workout_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false });
+
+      if (sessions && sessions.length > 0) {
+        const totalWorkouts = sessions.length;
+        const totalMinutes = sessions.reduce((acc, s) => acc + s.duration, 0);
+        const exercisesCompleted = sessions.reduce((acc, s) => acc + s.exercises_completed, 0);
+        
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        
+        const thisWeekWorkouts = sessions.filter(
+          s => new Date(s.completed_at) >= weekStart
+        ).length;
+
+        setStats({
+          totalWorkouts,
+          thisWeekWorkouts,
+          totalMinutes,
+          averageSessionTime: totalWorkouts > 0 ? Math.round(totalMinutes / totalWorkouts) : 0,
+          streak: calculateStreak(sessions),
+          exercisesCompleted,
+          weeklyProgress: calculateWeeklyProgress(sessions)
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const calculateStreak = (sessions: any[]) => {
+    if (!sessions.length) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+      
+      const hasWorkout = sessions.some(s => 
+        s.completed_at.split('T')[0] === dateStr
+      );
+      
+      if (hasWorkout) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const calculateWeeklyProgress = (sessions: any[]) => {
+    const progress = [0, 0, 0, 0, 0, 0, 0];
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    sessions.forEach(session => {
+      const sessionDate = new Date(session.completed_at);
+      if (sessionDate >= weekStart) {
+        const dayIndex = sessionDate.getDay();
+        progress[dayIndex] = Math.min(100, progress[dayIndex] + 50);
+      }
+    });
+
+    return progress;
+  };
+
+  const fetchSavedInsights = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('ai_insights')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (data && data.length > 0) {
+        setInsights(data.map(d => ({
+          id: d.id,
+          date: d.created_at,
+          type: d.type as any,
+          title: d.title,
+          content: d.content,
+          metrics: d.metrics as any
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching insights:', error);
+    }
+  };
 
   const generateInsights = async () => {
     setIsGenerating(true);
     
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // In a real app, this would call an AI endpoint
-    setInsights(demoInsights);
-    setIsGenerating(false);
-    
-    toast({
-      title: '✨ Insights Gerados!',
-      description: 'Análise completa dos seus treinos.',
-    });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: sessions } = await supabase
+        .from('workout_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(20);
+
+      const workoutData = {
+        ...stats,
+        recentSessions: sessions?.map(s => ({
+          dayName: s.day_name,
+          duration: s.duration,
+          exercisesCompleted: s.exercises_completed,
+          date: s.completed_at
+        })) || []
+      };
+
+      const { data, error } = await supabase.functions.invoke('generate-insights', {
+        body: { workoutData }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      if (data.error) {
+        if (data.error.includes('Rate limit')) {
+          toast({
+            title: 'Limite atingido',
+            description: 'Tente novamente em alguns segundos',
+            variant: 'destructive',
+          });
+        } else {
+          throw new Error(data.error);
+        }
+        return;
+      }
+
+      const newInsights: AIInsight[] = data.insights.map((insight: any, idx: number) => ({
+        id: `${Date.now()}-${idx}`,
+        date: new Date().toISOString(),
+        type: insight.type,
+        title: insight.title,
+        content: insight.content,
+        metrics: insight.metrics
+      }));
+
+      // Save insights to database
+      for (const insight of newInsights) {
+        await supabase.from('ai_insights').insert({
+          user_id: user.id,
+          type: insight.type,
+          title: insight.title,
+          content: insight.content,
+          metrics: insight.metrics
+        });
+      }
+
+      setInsights(newInsights);
+      
+      toast({
+        title: '✨ Insights Gerados!',
+        description: 'Análise completa dos seus treinos.',
+      });
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao gerar insights. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
