@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Dumbbell, Sparkles, History, 
-  User, LogOut, Menu, X
+  User, LogOut, Menu, X, TrendingUp
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { useAuthStore } from '@/store/workoutStore';
-import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Dumbbell, label: 'Treino', path: '/workout' },
+  { icon: TrendingUp, label: 'Evolução', path: '/evolution' },
   { icon: Sparkles, label: 'Insights', path: '/insights' },
   { icon: History, label: 'Histórico', path: '/history' },
 ];
@@ -19,10 +19,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, signOut } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
 
@@ -95,7 +95,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     <User size={16} className="text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{user?.name}</p>
+                    <p className="text-sm font-medium">{user?.user_metadata?.name || 'Usuário'}</p>
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 </div>

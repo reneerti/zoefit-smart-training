@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
-import { useAuthStore } from '@/store/workoutStore';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 export const AuthPage = () => {
@@ -16,15 +16,18 @@ export const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
+  const { signIn, signUp, isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     if (!email || !password) {
       toast({
@@ -46,13 +49,72 @@ export const AuthPage = () => {
       return;
     }
 
-    login(email, name || email.split('@')[0]);
-    toast({
-      title: isLogin ? 'Bem-vindo de volta!' : 'Conta criada!',
-      description: 'Redirecionando para o dashboard...',
-    });
+    if (password.length < 6) {
+      toast({
+        title: 'Erro',
+        description: 'A senha deve ter pelo menos 6 caracteres',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            toast({
+              title: 'Erro de login',
+              description: 'Email ou senha incorretos',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Erro',
+              description: error.message,
+              variant: 'destructive',
+            });
+          }
+          setIsLoading(false);
+          return;
+        }
+        toast({
+          title: 'Bem-vindo de volta!',
+          description: 'Redirecionando para o dashboard...',
+        });
+      } else {
+        const { error } = await signUp(email, password, name);
+        if (error) {
+          if (error.message.includes('User already registered')) {
+            toast({
+              title: 'Erro',
+              description: 'Este email já está cadastrado',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Erro',
+              description: error.message,
+              variant: 'destructive',
+            });
+          }
+          setIsLoading(false);
+          return;
+        }
+        toast({
+          title: 'Conta criada!',
+          description: 'Redirecionando para o dashboard...',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Ocorreu um erro inesperado',
+        variant: 'destructive',
+      });
+    }
     
-    setTimeout(() => navigate('/dashboard'), 500);
     setIsLoading(false);
   };
 
