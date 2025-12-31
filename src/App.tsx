@@ -13,7 +13,7 @@ import { WorkoutPage } from "./pages/Workout";
 import { InsightsPage } from "./pages/Insights";
 import { HistoryPage } from "./pages/History";
 import { EvolutionPage } from "./pages/Evolution";
-import { WorkoutProfilesPage } from "./pages/WorkoutProfiles";
+import { WorkoutProfilesEnhancedPage } from "./pages/WorkoutProfilesEnhanced";
 import { FitAIPage } from "./pages/FitAI";
 import { AISettingsPage } from "./pages/AISettings";
 import { SettingsPage } from "./pages/Settings";
@@ -70,7 +70,7 @@ const AppContent = () => {
         <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
         <Route path="/evolution" element={<ProtectedRoute><EvolutionPage /></ProtectedRoute>} />
-        <Route path="/workout-profiles" element={<ProtectedRoute><WorkoutProfilesPage /></ProtectedRoute>} />
+        <Route path="/workout-profiles" element={<ProtectedRoute><WorkoutProfilesEnhancedPage /></ProtectedRoute>} />
         <Route path="/fit-ai" element={<ProtectedRoute><FitAIPage /></ProtectedRoute>} />
         <Route path="/ai-settings" element={<ProtectedRoute><AISettingsPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
