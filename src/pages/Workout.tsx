@@ -1,10 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Play, Square, Check, Timer, Dumbbell, ChevronDown, 
-  ChevronUp, ExternalLink, Flame, Trophy
+  ChevronUp, ExternalLink, Flame, Trophy, Pause
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { workoutPlan } from '@/data/workoutData';
 import { WorkoutDay, Exercise } from '@/types/workout';
@@ -18,6 +24,39 @@ const formatTime = (seconds: number) => {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+const MOTIVATIONAL_MESSAGES = {
+  start: [
+    "💪 Vamos nessa! Cada rep conta!",
+    "🔥 Hora de transformar suor em resultados!",
+    "⚡ Seu futuro eu vai agradecer!",
+  ],
+  fifteen: [
+    "🏃 15 minutos já! Continue firme, você está indo muito bem!",
+    "💪 Quase na metade! Sua dedicação está fazendo diferença!",
+    "🔥 15 min de pura determinação! Mantenha o ritmo!",
+  ],
+  fifty: [
+    "🏆 50 minutos de treino! Você é uma máquina!",
+    "⭐ Uau! 50 min e ainda firme! Reta final!",
+    "🎯 Quase 1 hora! Poucos chegam aqui, você é diferente!",
+  ],
+  complete: [
+    "🏆 TREINO COMPLETO! Você deu tudo de si!",
+    "⭐ EXCELENTE! 100% dos exercícios concluídos!",
+    "🎉 PERFEITO! Você é imparável!",
+  ],
+  partial: [
+    "✅ Bom treino! Cada exercício feito é uma vitória!",
+    "💪 Treino finalizado! Amanhã você volta mais forte!",
+    "👏 Parabéns por treinar! Consistência é a chave!",
+  ]
+};
+
+const getRandomMessage = (type: keyof typeof MOTIVATIONAL_MESSAGES) => {
+  const messages = MOTIVATIONAL_MESSAGES[type];
+  return messages[Math.floor(Math.random() * messages.length)];
 };
 
 const ExerciseItem = ({ 
@@ -41,12 +80,11 @@ const ExerciseItem = ({
     >
       <button
         onClick={onToggle}
-        disabled={!isActive}
         className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${
           isCompleted 
             ? 'bg-primary border-primary' 
             : 'border-muted-foreground/50 hover:border-primary'
-        } ${!isActive && 'opacity-50 cursor-not-allowed'}`}
+        }`}
       >
         {isCompleted && <Check size={14} className="text-primary-foreground" />}
       </button>
@@ -144,6 +182,14 @@ const WorkoutBlock = ({
 export const WorkoutPage = () => {
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [pausedTime, setPausedTime] = useState(0);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [completionMessage, setCompletionMessage] = useState({ title: '', description: '' });
+  
+  const shown15minRef = useRef(false);
+  const shown50minRef = useRef(false);
+  
   const { currentSession, startWorkout, endWorkout, toggleExercise } = useWorkoutStore();
   const { toast } = useToast();
 
@@ -158,23 +204,86 @@ export const WorkoutPage = () => {
     setSelectedDay(day);
   }, []);
 
-  // Timer
+  // Timer with pause support
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (currentSession.isActive && currentSession.startTime) {
+    if (currentSession.isActive && currentSession.startTime && !isPaused) {
       interval = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - currentSession.startTime!) / 1000));
+        const newElapsed = Math.floor((Date.now() - currentSession.startTime! - pausedTime) / 1000);
+        setElapsedTime(newElapsed);
+        
+        // Check for 15 minutes milestone
+        if (newElapsed >= 900 && !shown15minRef.current) {
+          shown15minRef.current = true;
+          toast({
+            title: getRandomMessage('fifteen'),
+            duration: 5000,
+          });
+        }
+        
+        // Check for 50 minutes milestone
+        if (newElapsed >= 3000 && !shown50minRef.current) {
+          shown50minRef.current = true;
+          toast({
+            title: getRandomMessage('fifty'),
+            duration: 5000,
+          });
+        }
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [currentSession.isActive, currentSession.startTime]);
+  }, [currentSession.isActive, currentSession.startTime, isPaused, pausedTime, toast]);
 
   const handleStartWorkout = () => {
     if (selectedDay) {
       startWorkout(selectedDay.id);
+      shown15minRef.current = false;
+      shown50minRef.current = false;
+      setPausedTime(0);
+      setIsPaused(false);
       toast({
-        title: '💪 Treino Iniciado!',
-        description: `Bora ${selectedDay.title}!`,
+        title: getRandomMessage('start'),
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleToggleExercise = (exerciseId: string) => {
+    // Se o treino não foi iniciado, inicia automaticamente
+    if (!currentSession.isActive && selectedDay) {
+      startWorkout(selectedDay.id);
+      shown15minRef.current = false;
+      shown50minRef.current = false;
+      setPausedTime(0);
+      setIsPaused(false);
+      toast({
+        title: '⏱️ Treino iniciado automaticamente!',
+        description: 'Bora treinar!',
+        duration: 2000,
+      });
+    }
+    
+    toggleExercise(exerciseId);
+  };
+
+  const handlePauseWorkout = () => {
+    if (isPaused) {
+      // Retomando - adiciona o tempo pausado
+      setPausedTime(prev => prev + (Date.now() - (window as any).__pauseStartTime));
+      setIsPaused(false);
+      toast({
+        title: '▶️ Treino retomado!',
+        description: 'Continue de onde parou',
+        duration: 2000,
+      });
+    } else {
+      // Pausando
+      (window as any).__pauseStartTime = Date.now();
+      setIsPaused(true);
+      toast({
+        title: '⏸️ Treino pausado',
+        description: 'Descanse um pouco',
+        duration: 2000,
       });
     }
   };
@@ -182,15 +291,37 @@ export const WorkoutPage = () => {
   const handleEndWorkout = () => {
     const totalExercises = selectedDay?.blocks.reduce((acc, b) => acc + b.exercises.length, 0) || 0;
     const completed = currentSession.completedExercises.length;
+    const isComplete = completed === totalExercises;
+    const percentage = Math.round((completed / totalExercises) * 100);
+    
+    // Preparar mensagem de conclusão
+    const message = isComplete ? getRandomMessage('complete') : getRandomMessage('partial');
+    
+    let evaluation = '';
+    if (percentage === 100) {
+      evaluation = '⭐⭐⭐⭐⭐ Treino Perfeito!';
+    } else if (percentage >= 80) {
+      evaluation = '⭐⭐⭐⭐ Excelente treino!';
+    } else if (percentage >= 60) {
+      evaluation = '⭐⭐⭐ Bom treino!';
+    } else if (percentage >= 40) {
+      evaluation = '⭐⭐ Treino OK. Tente fazer mais amanhã!';
+    } else {
+      evaluation = '⭐ Todo treino conta! Volte amanhã!';
+    }
+
+    setCompletionMessage({
+      title: message,
+      description: `${completed}/${totalExercises} exercícios (${percentage}%) em ${formatTime(elapsedTime)}\n\n${evaluation}`
+    });
+    setShowCompletionDialog(true);
     
     endWorkout();
-    
-    toast({
-      title: completed === totalExercises ? '🏆 Treino Completo!' : '✅ Treino Finalizado',
-      description: `${completed}/${totalExercises} exercícios em ${formatTime(elapsedTime)}`,
-    });
-    
     setElapsedTime(0);
+    setPausedTime(0);
+    setIsPaused(false);
+    shown15minRef.current = false;
+    shown50minRef.current = false;
   };
 
   const totalExercises = selectedDay?.blocks.reduce((acc, b) => acc + b.exercises.length, 0) || 0;
@@ -199,6 +330,26 @@ export const WorkoutPage = () => {
 
   return (
     <div className="space-y-4 animate-fade-in pb-24">
+      {/* Completion Dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="text-center">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{completionMessage.title}</DialogTitle>
+          </DialogHeader>
+          <div className="py-6">
+            <div className="w-20 h-20 mx-auto rounded-full bg-primary/20 flex items-center justify-center mb-4">
+              <Trophy size={40} className="text-primary" />
+            </div>
+            <p className="text-muted-foreground whitespace-pre-line">
+              {completionMessage.description}
+            </p>
+          </div>
+          <Button onClick={() => setShowCompletionDialog(false)} className="w-full">
+            Fechar
+          </Button>
+        </DialogContent>
+      </Dialog>
+
       {/* Day Selector */}
       <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
         {workoutPlan.map((day) => (
@@ -244,9 +395,12 @@ export const WorkoutPage = () => {
                 </div>
                 {currentSession.isActive && (
                   <div className="text-right">
-                    <p className="font-display text-2xl font-bold text-primary">
+                    <p className={`font-display text-2xl font-bold ${isPaused ? 'text-yellow-500 animate-pulse' : 'text-primary'}`}>
                       {formatTime(elapsedTime)}
                     </p>
+                    {isPaused && (
+                      <span className="text-xs text-yellow-500">PAUSADO</span>
+                    )}
                   </div>
                 )}
               </div>
@@ -278,8 +432,8 @@ export const WorkoutPage = () => {
                 key={block.id}
                 block={block}
                 completedExercises={currentSession.completedExercises}
-                onToggle={toggleExercise}
-                isActive={currentSession.isActive}
+                onToggle={handleToggleExercise}
+                isActive={true}
               />
             ))}
           </div>
@@ -299,7 +453,15 @@ export const WorkoutPage = () => {
               Iniciar Treino
             </Button>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={handlePauseWorkout}
+                className={isPaused ? 'border-yellow-500 text-yellow-500' : ''}
+              >
+                {isPaused ? <Play size={18} /> : <Pause size={18} />}
+              </Button>
               <Button 
                 variant="destructive" 
                 size="lg"
@@ -309,7 +471,7 @@ export const WorkoutPage = () => {
                 <Square size={18} />
                 Finalizar
               </Button>
-              {completedCount === totalExercises && (
+              {completedCount === totalExercises && totalExercises > 0 && (
                 <Button 
                   size="lg"
                   className="flex-1"
