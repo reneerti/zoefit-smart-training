@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Dumbbell, Sparkles, History, 
-  User, LogOut, Menu, X, TrendingUp
+  User, LogOut, Menu, X, TrendingUp, Settings, FolderKanban
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,9 +10,9 @@ import { useAuth } from '@/hooks/useAuth';
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Dumbbell, label: 'Treino', path: '/workout' },
+  { icon: FolderKanban, label: 'Perfis', path: '/workout-profiles' },
   { icon: TrendingUp, label: 'Evolução', path: '/evolution' },
-  { icon: Sparkles, label: 'Insights', path: '/insights' },
-  { icon: History, label: 'Histórico', path: '/history' },
+  { icon: Settings, label: 'Config', path: '/settings' },
 ];
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
