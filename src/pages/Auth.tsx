@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { InstallPWAButton } from '@/components/InstallPWA';
 
 export const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -191,8 +192,21 @@ export const AuthPage = () => {
                 </>
               )}
             </Button>
+
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => navigate('/reset-password')}
+                className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Esqueci minha senha
+              </button>
+            )}
           </div>
         </form>
+
+        {/* Install App Button */}
+        <InstallPWAButton />
 
         {/* Toggle */}
         <p className="text-center text-sm text-muted-foreground">

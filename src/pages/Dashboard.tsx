@@ -10,6 +10,8 @@ import { workoutPlan } from '@/data/workoutData';
 import { useNavigate } from 'react-router-dom';
 import { GamificationCard } from '@/components/Gamification';
 import { AchievementsPreview } from '@/components/AchievementsPreview';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const StatCard = ({ 
   icon: Icon, 
@@ -48,14 +50,109 @@ const StatCard = ({
 
 const TodayWorkout = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [activeProfile, setActiveProfile] = useState<any>(null);
+  const [todayWorkouts, setTodayWorkouts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const dayIndex = new Date().getDay();
   const dayMap: Record<number, string> = {
     1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex'
   };
   const todayId = dayMap[dayIndex];
-  const todayWorkout = workoutPlan.find(d => d.id === todayId);
-  const isRestDay = !todayWorkout;
 
+  useEffect(() => {
+    const fetchActiveProfile = async () => {
+      if (!user) return;
+      
+      try {
+        // Buscar perfil ativo
+        const { data: profile } = await supabase
+          .from('workout_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single();
+
+        if (profile) {
+          setActiveProfile(profile);
+          
+          // Buscar treinos do dia de hoje
+          const { data: workouts } = await supabase
+            .from('profile_workouts')
+            .select(`
+              *,
+              exercises:profile_exercises(*)
+            `)
+            .eq('profile_id', profile.id)
+            .eq('day_of_week', dayIndex);
+
+          setTodayWorkouts(workouts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching active profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActiveProfile();
+  }, [user, dayIndex]);
+
+  // Fallback para o plano padrão se não houver perfil ativo
+  const todayWorkout = workoutPlan.find(d => d.id === todayId);
+  const isRestDay = !todayWorkout && todayWorkouts.length === 0 && !loading;
+
+  // Se tem perfil ativo com treinos
+  if (activeProfile && todayWorkouts.length > 0) {
+    return (
+      <Card className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5" />
+        <CardHeader className="relative pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar size={18} className="text-primary" />
+              Treino de Hoje
+            </CardTitle>
+            <span 
+              className="text-xs px-2 py-1 rounded-full"
+              style={{ 
+                backgroundColor: `${activeProfile.color}20` || 'hsl(var(--primary) / 0.2)',
+                color: activeProfile.color || 'hsl(var(--primary))'
+              }}
+            >
+              {activeProfile.name}
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="relative pt-0">
+          <div className="space-y-4">
+            {todayWorkouts.map((workout, index) => (
+              <div key={workout.id}>
+                <h3 className="text-lg font-semibold">{workout.name}</h3>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                  <span className="flex items-center gap-1">
+                    <Dumbbell size={14} />
+                    {workout.exercises?.length || 0} exercícios
+                  </span>
+                </div>
+              </div>
+            ))}
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={() => navigate('/workout')}
+            >
+              Iniciar Treino
+              <ChevronRight size={18} />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Fallback para treino padrão ou dia de descanso
   return (
     <Card className="relative overflow-hidden">
       <div className={`absolute inset-0 ${isRestDay ? 'bg-secondary/30' : todayWorkout?.type === 'hiit' ? 'bg-neon-orange/5' : 'bg-primary/5'}`} />
@@ -65,7 +162,7 @@ const TodayWorkout = () => {
             <Calendar size={18} className="text-primary" />
             Treino de Hoje
           </CardTitle>
-          {!isRestDay && (
+          {!isRestDay && todayWorkout && (
             <span className={`text-xs px-2 py-1 rounded-full ${todayWorkout?.type === 'hiit' ? 'bg-neon-orange/20 text-neon-orange' : 'bg-primary/20 text-primary'}`}>
               {todayWorkout?.type === 'hiit' ? '🔥 HIIT' : '💪 Força'}
             </span>

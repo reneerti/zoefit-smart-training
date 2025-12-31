@@ -394,14 +394,20 @@ export const WorkoutPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Day Selector */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+      {/* Profile Name */}
+      <div className="text-center">
+        <span className="text-xs text-muted-foreground">Perfil Atual</span>
+        <h2 className="font-display font-bold text-lg text-primary">Treino Padrão</h2>
+      </div>
+
+      {/* Day Selector - Compact for mobile */}
+      <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
         {workoutPlan.map((day) => (
           <button
             key={day.id}
             onClick={() => !currentSession.isActive && setSelectedDay(day)}
             disabled={currentSession.isActive}
-            className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+            className={`flex-shrink-0 px-2.5 py-1.5 rounded-lg font-medium text-xs transition-all ${
               selectedDay?.id === day.id
                 ? day.type === 'hiit' 
                   ? 'bg-neon-orange text-primary-foreground shadow-lg'
@@ -409,7 +415,7 @@ export const WorkoutPage = () => {
                 : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
             } ${currentSession.isActive && 'opacity-50 cursor-not-allowed'}`}
           >
-            {day.name}
+            {day.name.substring(0, 3)}
           </button>
         ))}
       </div>
