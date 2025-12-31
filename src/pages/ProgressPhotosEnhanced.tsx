@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Camera, Plus, Trash2, ChevronLeft, ChevronRight, 
   Calendar, Scale, X, ZoomIn, Upload, Filter, Grid, List,
@@ -53,6 +54,7 @@ const PHOTO_CATEGORIES = [
 const MAX_DAILY_PHOTOS = 3;
 
 export const ProgressPhotosEnhancedPage = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -275,8 +277,9 @@ export const ProgressPhotosEnhancedPage = () => {
         </div>
         <div className="flex gap-2">
           {photos.length >= 2 && (
-            <Button variant="outline" size="icon" onClick={() => setShowCompareDialog(true)}>
-              <ZoomIn size={16} />
+            <Button variant="outline" onClick={() => navigate('/photo-comparison')}>
+              <ZoomIn size={16} className="mr-2" />
+              Comparar
             </Button>
           )}
           <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>

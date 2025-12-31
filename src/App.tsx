@@ -25,6 +25,7 @@ import { SocialPage } from "./pages/Social";
 import { WeeklyReportPage } from "./pages/WeeklyReport";
 import { ResetPasswordPage } from "./pages/ResetPassword";
 import { UpdatePasswordPage } from "./pages/UpdatePassword";
+import { PhotoComparisonPage } from "./pages/PhotoComparison";
 import { Layout } from "./components/Layout";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -76,6 +77,7 @@ const AppContent = () => {
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
         <Route path="/progress-photos" element={<ProtectedRoute><ProgressPhotosEnhancedPage /></ProtectedRoute>} />
+        <Route path="/photo-comparison" element={<ProtectedRoute><PhotoComparisonPage /></ProtectedRoute>} />
         <Route path="/supplements" element={<ProtectedRoute><SupplementsPage /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
         <Route path="/social" element={<ProtectedRoute><SocialPage /></ProtectedRoute>} />
