@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Brain, Trash2, AlertTriangle, LogOut, 
-  ChevronRight, User, Database, Sparkles
+  ChevronRight, Database, Sparkles, Sun, Moon,
+  Target, Camera, Pill, Volume2, VolumeX
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,10 +21,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSettingsStore } from '@/store/settingsStore';
 
 export const SettingsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, setTheme, soundEnabled, toggleSound } = useSettingsStore();
   const [isResetting, setIsResetting] = useState(false);
 
   const handleLogout = async () => {
@@ -126,8 +130,59 @@ export const SettingsPage = () => {
         <p className="text-muted-foreground text-sm">Gerencie sua conta e preferências</p>
       </div>
 
+      {/* Theme & Sound */}
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {theme === 'dark' ? <Moon size={20} className="text-primary" /> : <Sun size={20} className="text-primary" />}
+              <div>
+                <p className="font-medium">Tema {theme === 'dark' ? 'Escuro' : 'Claro'}</p>
+                <p className="text-sm text-muted-foreground">Alterar aparência do app</p>
+              </div>
+            </div>
+            <Switch 
+              checked={theme === 'dark'} 
+              onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} 
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {soundEnabled ? <Volume2 size={20} className="text-primary" /> : <VolumeX size={20} className="text-muted-foreground" />}
+              <div>
+                <p className="font-medium">Sons</p>
+                <p className="text-sm text-muted-foreground">Notificações sonoras no treino</p>
+              </div>
+            </div>
+            <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Menu Items */}
       <div className="space-y-2">
+        <MenuItem
+          icon={Target}
+          label="Metas"
+          description="Defina objetivos personalizados"
+          onClick={() => navigate('/goals')}
+        />
+        
+        <MenuItem
+          icon={Camera}
+          label="Fotos de Progresso"
+          description="Compare sua evolução visual"
+          onClick={() => navigate('/progress-photos')}
+        />
+        
+        <MenuItem
+          icon={Pill}
+          label="Suplementação"
+          description="Gerencie seus suplementos"
+          onClick={() => navigate('/supplements')}
+        />
+
         <MenuItem
           icon={Brain}
           label="Configurações de IA"
