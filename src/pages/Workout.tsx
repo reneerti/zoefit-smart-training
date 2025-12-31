@@ -15,6 +15,9 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { workoutPlan } from '@/data/workoutData';
 import { WorkoutDay, Exercise } from '@/types/workout';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { updateGamificationAfterWorkout } from '@/utils/achievements';
+import { Celebration, useCelebration } from '@/components/Celebration';
 
 const formatTime = (seconds: number) => {
   const hrs = Math.floor(seconds / 3600);
@@ -192,6 +195,7 @@ export const WorkoutPage = () => {
   
   const { currentSession, startWorkout, endWorkout, toggleExercise } = useWorkoutStore();
   const { toast } = useToast();
+  const { celebration, celebrate, closeCelebration } = useCelebration();
 
   // Set initial day based on current weekday
   useEffect(() => {
@@ -288,7 +292,7 @@ export const WorkoutPage = () => {
     }
   };
 
-  const handleEndWorkout = () => {
+  const handleEndWorkout = async () => {
     const totalExercises = selectedDay?.blocks.reduce((acc, b) => acc + b.exercises.length, 0) || 0;
     const completed = currentSession.completedExercises.length;
     const isComplete = completed === totalExercises;
@@ -317,6 +321,35 @@ export const WorkoutPage = () => {
     setShowCompletionDialog(true);
     
     endWorkout();
+    
+    // Atualizar gamificação
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const workoutMinutes = Math.floor(elapsedTime / 60);
+        const result = await updateGamificationAfterWorkout(user.id, workoutMinutes);
+        
+        // Mostrar celebração se subiu de nível
+        if (result.leveledUp) {
+          setTimeout(() => {
+            setShowCompletionDialog(false);
+            celebrate('level_up', `Nível ${result.newLevel}!`, `Você subiu de nível! Continue evoluindo!`);
+          }, 1500);
+        }
+        
+        // Mostrar conquistas desbloqueadas
+        if (result.newAchievements.length > 0 && !result.leveledUp) {
+          setTimeout(() => {
+            setShowCompletionDialog(false);
+            const achievement = result.newAchievements[0];
+            celebrate('achievement', achievement.name, `+${achievement.xp_reward} XP conquistado!`);
+          }, 1500);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating gamification:', error);
+    }
+    
     setElapsedTime(0);
     setPausedTime(0);
     setIsPaused(false);
@@ -329,6 +362,17 @@ export const WorkoutPage = () => {
   const progress = totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
 
   return (
+    <>
+      {/* Celebration Animation */}
+      {celebration && (
+        <Celebration
+          type={celebration.type}
+          title={celebration.title}
+          subtitle={celebration.subtitle}
+          onClose={closeCelebration}
+        />
+      )}
+      
     <div className="space-y-4 animate-fade-in pb-24">
       {/* Completion Dialog */}
       <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
@@ -486,5 +530,6 @@ export const WorkoutPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
