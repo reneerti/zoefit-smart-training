@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Trash2, Edit2, Play, Calendar, 
   ExternalLink, Sparkles, ChevronRight, MoreVertical,
-  CheckCircle2, Circle
+  CheckCircle2, Circle, Dumbbell, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,8 +72,30 @@ export const WorkoutProfilesPage = () => {
     name: '',
     day_of_week: '',
     youtube_url: '',
-    notes: ''
+    notes: '',
+    exercises: [{ name: '', sets: '3', reps: '12' }] as Array<{ name: string; sets: string; reps: string }>
   });
+
+  const addExerciseField = () => {
+    setNewWorkout(prev => ({
+      ...prev,
+      exercises: [...prev.exercises, { name: '', sets: '3', reps: '12' }]
+    }));
+  };
+
+  const removeExerciseField = (index: number) => {
+    setNewWorkout(prev => ({
+      ...prev,
+      exercises: prev.exercises.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateExercise = (index: number, field: 'name' | 'sets' | 'reps', value: string) => {
+    setNewWorkout(prev => ({
+      ...prev,
+      exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, [field]: value } : ex)
+    }));
+  };
 
   useEffect(() => {
     fetchProfiles();
@@ -189,12 +211,31 @@ export const WorkoutProfilesPage = () => {
 
       if (error) throw error;
 
+      // Criar exercícios se houver
+      const validExercises = newWorkout.exercises.filter(ex => ex.name.trim());
+      if (validExercises.length > 0) {
+        for (let i = 0; i < validExercises.length; i++) {
+          const ex = validExercises[i];
+          await supabase
+            .from('profile_exercises')
+            .insert({
+              workout_id: data.id,
+              user_id: user.id,
+              name: ex.name,
+              sets: ex.sets,
+              reps: ex.reps,
+              order_index: i
+            });
+        }
+      }
+
       setWorkouts(prev => [...prev, data]);
       setShowWorkoutDialog(false);
-      setNewWorkout({ name: '', day_of_week: '', youtube_url: '', notes: '' });
+      setNewWorkout({ name: '', day_of_week: '', youtube_url: '', notes: '', exercises: [{ name: '', sets: '3', reps: '12' }] });
       
       toast({
         title: 'Treino adicionado!',
+        description: validExercises.length > 0 ? `${validExercises.length} exercícios criados` : undefined
       });
     } catch (error) {
       console.error('Error creating workout:', error);
@@ -500,14 +541,60 @@ export const WorkoutProfilesPage = () => {
                       onChange={(e) => setNewWorkout(prev => ({ ...prev, youtube_url: e.target.value }))}
                     />
                   </div>
-                  <div>
-                    <Label>Notas</Label>
-                    <Textarea 
-                      placeholder="Observações sobre o treino..."
-                      value={newWorkout.notes}
-                      onChange={(e) => setNewWorkout(prev => ({ ...prev, notes: e.target.value }))}
-                    />
+                  
+                  {/* Exercícios */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Dumbbell size={14} />
+                        Exercícios (opcional)
+                      </Label>
+                      <Button type="button" variant="ghost" size="sm" onClick={addExerciseField}>
+                        <Plus size={14} className="mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {newWorkout.exercises.map((exercise, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg">
+                          <Input
+                            placeholder="Nome do exercício"
+                            value={exercise.name}
+                            onChange={(e) => updateExercise(index, 'name', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Input
+                            placeholder="Séries"
+                            value={exercise.sets}
+                            onChange={(e) => updateExercise(index, 'sets', e.target.value)}
+                            className="w-16 text-center"
+                          />
+                          <span className="text-muted-foreground">x</span>
+                          <Input
+                            placeholder="Reps"
+                            value={exercise.reps}
+                            onChange={(e) => updateExercise(index, 'reps', e.target.value)}
+                            className="w-16 text-center"
+                          />
+                          {newWorkout.exercises.length > 1 && (
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => removeExerciseField(index)}
+                            >
+                              <X size={14} className="text-muted-foreground" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Deixe o nome em branco para pular o exercício
+                    </p>
                   </div>
+                  
                   <Button onClick={createWorkout} disabled={!newWorkout.name} className="w-full">
                     Adicionar Treino
                   </Button>

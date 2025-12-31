@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Brain, Trash2, AlertTriangle, LogOut, 
   ChevronRight, Database, Sparkles, Sun, Moon,
-  Target, Camera, Pill, Volume2, VolumeX, Trophy
+  Target, Camera, Pill, Volume2, VolumeX, Trophy, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -202,6 +202,13 @@ export const SettingsPage = () => {
           label="Conquistas"
           description="Veja suas conquistas desbloqueadas"
           onClick={() => navigate('/achievements')}
+        />
+        
+        <MenuItem
+          icon={Users}
+          label="Social"
+          description="Ranking e comparação com outros atletas"
+          onClick={() => navigate('/social')}
         />
       </div>
 

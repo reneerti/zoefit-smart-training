@@ -21,6 +21,7 @@ import { GoalsPage } from "./pages/Goals";
 import { ProgressPhotosPage } from "./pages/ProgressPhotos";
 import { SupplementsPage } from "./pages/Supplements";
 import { AchievementsPage } from "./pages/Achievements";
+import { SocialPage } from "./pages/Social";
 import { Layout } from "./components/Layout";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -74,6 +75,7 @@ const AppContent = () => {
         <Route path="/progress-photos" element={<ProtectedRoute><ProgressPhotosPage /></ProtectedRoute>} />
         <Route path="/supplements" element={<ProtectedRoute><SupplementsPage /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
+        <Route path="/social" element={<ProtectedRoute><SocialPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
