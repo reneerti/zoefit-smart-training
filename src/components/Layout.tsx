@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Dumbbell, Sparkles, History, 
-  User, LogOut, Menu, X, TrendingUp, Settings, FolderKanban
+  User, LogOut, Menu, X, TrendingUp, Settings, FolderKanban, Camera
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Dumbbell, label: 'Treino', path: '/workout' },
   { icon: FolderKanban, label: 'Perfis', path: '/workout-profiles' },
+  { icon: Camera, label: 'Fotos', path: '/progress-photos' },
   { icon: TrendingUp, label: 'Evolução', path: '/evolution' },
   { icon: Settings, label: 'Config', path: '/settings' },
 ];
@@ -29,8 +30,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50">
-        <div className="container max-w-lg mx-auto flex items-center justify-between h-16 px-4">
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-primary/20 shadow-sm">
+        <div className="container max-w-lg mx-auto flex items-center justify-between h-14 px-4">
           <Logo size="sm" />
           
           {/* Desktop Nav */}
@@ -66,7 +67,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 right-0 bg-background/95 backdrop-blur-lg border-b border-border/50 animate-fade-in">
+          <div className="md:hidden absolute top-14 left-0 right-0 bg-card/95 backdrop-blur-md border-b border-primary/20 animate-fade-in">
             <nav className="container max-w-lg mx-auto py-4 px-4 space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -113,28 +114,30 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container max-w-lg mx-auto px-4 py-6">
+      <main className="flex-1 container max-w-lg mx-auto px-4 py-6 pb-24">
         {children}
       </main>
 
       {/* Bottom Nav (Mobile) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border/50 z-40">
-        <div className="container max-w-lg mx-auto flex justify-around py-2">
-          {navItems.map((item) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-md border-t border-primary/20 z-40 shadow-lg">
+        <div className="container max-w-lg mx-auto flex justify-around py-1">
+          {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all ${
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all ${
                   isActive 
                     ? 'text-primary' 
                     : 'text-muted-foreground'
                 }`}
               >
-                <Icon size={20} />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <div className={`p-1.5 rounded-lg transition-all ${isActive ? 'bg-primary/20' : ''}`}>
+                  <Icon size={18} className={isActive ? 'fill-primary/30' : ''} />
+                </div>
+                <span className="text-[9px] font-medium">{item.label}</span>
               </button>
             );
           })}

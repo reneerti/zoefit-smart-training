@@ -1,4 +1,5 @@
 import { Dumbbell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -6,6 +7,8 @@ interface LogoProps {
 }
 
 export const Logo = ({ size = 'md', showText = true }: LogoProps) => {
+  const navigate = useNavigate();
+  
   const sizes = {
     sm: { icon: 20, text: 'text-lg' },
     md: { icon: 28, text: 'text-2xl' },
@@ -13,7 +16,10 @@ export const Logo = ({ size = 'md', showText = true }: LogoProps) => {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <button 
+      onClick={() => navigate('/')}
+      className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+    >
       <div className="relative">
         <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full animate-pulse-slow" />
         <div className="relative bg-gradient-primary p-2 rounded-xl shadow-neon">
@@ -32,6 +38,6 @@ export const Logo = ({ size = 'md', showText = true }: LogoProps) => {
           )}
         </div>
       )}
-    </div>
+    </button>
   );
 };
