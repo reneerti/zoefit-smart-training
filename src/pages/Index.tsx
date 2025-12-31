@@ -86,20 +86,6 @@ const Index = () => {
             </Button>
           </div>
 
-          {/* Social Proof */}
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <div className="flex -space-x-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div 
-                  key={i}
-                  className="w-8 h-8 rounded-full bg-gradient-primary border-2 border-background flex items-center justify-center"
-                >
-                  <Users size={14} className="text-primary-foreground" />
-                </div>
-              ))}
-            </div>
-            <span>+2.500 usuários ativos</span>
-          </div>
         </div>
       </section>
 

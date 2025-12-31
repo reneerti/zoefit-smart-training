@@ -110,6 +110,65 @@ export type Database = {
         }
         Relationships: []
       }
+      fit_ai_forms: {
+        Row: {
+          ai_model: string
+          ai_response: Json | null
+          available_days: number
+          created_at: string
+          equipment: string[] | null
+          experience_level: string
+          focus_areas: string[] | null
+          generated_profile_id: string | null
+          goal: string
+          id: string
+          limitations: string | null
+          status: string
+          user_id: string
+          workout_duration: number
+        }
+        Insert: {
+          ai_model?: string
+          ai_response?: Json | null
+          available_days: number
+          created_at?: string
+          equipment?: string[] | null
+          experience_level: string
+          focus_areas?: string[] | null
+          generated_profile_id?: string | null
+          goal: string
+          id?: string
+          limitations?: string | null
+          status?: string
+          user_id: string
+          workout_duration: number
+        }
+        Update: {
+          ai_model?: string
+          ai_response?: Json | null
+          available_days?: number
+          created_at?: string
+          equipment?: string[] | null
+          experience_level?: string
+          focus_areas?: string[] | null
+          generated_profile_id?: string | null
+          goal?: string
+          id?: string
+          limitations?: string | null
+          status?: string
+          user_id?: string
+          workout_duration?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fit_ai_forms_generated_profile_id_fkey"
+            columns: ["generated_profile_id"]
+            isOneToOne: false
+            referencedRelation: "workout_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           achieved: boolean
@@ -145,6 +204,100 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      profile_exercises: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          order_index: number
+          reps: string | null
+          sets: string | null
+          user_id: string
+          workout_id: string
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          order_index?: number
+          reps?: string | null
+          sets?: string | null
+          user_id: string
+          workout_id: string
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          order_index?: number
+          reps?: string | null
+          sets?: string | null
+          user_id?: string
+          workout_id?: string
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_exercises_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "profile_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_workouts: {
+        Row: {
+          created_at: string
+          day_of_week: number | null
+          id: string
+          name: string
+          notes: string | null
+          order_index: number
+          profile_id: string
+          user_id: string
+          week_number: number | null
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          order_index?: number
+          profile_id: string
+          user_id: string
+          week_number?: number | null
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          order_index?: number
+          profile_id?: string
+          user_id?: string
+          week_number?: number | null
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_workouts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "workout_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -297,6 +450,33 @@ export type Database = {
           },
         ]
       }
+      user_ai_settings: {
+        Row: {
+          created_at: string
+          form_model: string
+          id: string
+          insights_model: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          form_model?: string
+          id?: string
+          insights_model?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          form_model?: string
+          id?: string
+          insights_model?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_gamification: {
         Row: {
           created_at: string
@@ -354,6 +534,48 @@ export type Database = {
           recorded_at?: string
           user_id?: string
           weight?: number
+        }
+        Relationships: []
+      }
+      workout_profiles: {
+        Row: {
+          ai_form_data: Json | null
+          created_at: string
+          description: string | null
+          end_month: string | null
+          id: string
+          is_active: boolean
+          is_ai_generated: boolean
+          name: string
+          start_month: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_form_data?: Json | null
+          created_at?: string
+          description?: string | null
+          end_month?: string | null
+          id?: string
+          is_active?: boolean
+          is_ai_generated?: boolean
+          name: string
+          start_month?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_form_data?: Json | null
+          created_at?: string
+          description?: string | null
+          end_month?: string | null
+          id?: string
+          is_active?: boolean
+          is_ai_generated?: boolean
+          name?: string
+          start_month?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

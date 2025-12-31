@@ -11,6 +11,10 @@ import { WorkoutPage } from "./pages/Workout";
 import { InsightsPage } from "./pages/Insights";
 import { HistoryPage } from "./pages/History";
 import { EvolutionPage } from "./pages/Evolution";
+import { WorkoutProfilesPage } from "./pages/WorkoutProfiles";
+import { FitAIPage } from "./pages/FitAI";
+import { AISettingsPage } from "./pages/AISettings";
+import { SettingsPage } from "./pages/Settings";
 import { Layout } from "./components/Layout";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -49,6 +53,10 @@ const App = () => (
           <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
           <Route path="/evolution" element={<ProtectedRoute><EvolutionPage /></ProtectedRoute>} />
+          <Route path="/workout-profiles" element={<ProtectedRoute><WorkoutProfilesPage /></ProtectedRoute>} />
+          <Route path="/fit-ai" element={<ProtectedRoute><FitAIPage /></ProtectedRoute>} />
+          <Route path="/ai-settings" element={<ProtectedRoute><AISettingsPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
