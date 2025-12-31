@@ -74,6 +74,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bioimpedance_records: {
+        Row: {
+          body_fat: number | null
+          body_water: number | null
+          bone_mass: number | null
+          created_at: string
+          id: string
+          metabolic_age: number | null
+          muscle_mass: number | null
+          recorded_at: string
+          user_id: string
+          visceral_fat: number | null
+        }
+        Insert: {
+          body_fat?: number | null
+          body_water?: number | null
+          bone_mass?: number | null
+          created_at?: string
+          id?: string
+          metabolic_age?: number | null
+          muscle_mass?: number | null
+          recorded_at?: string
+          user_id: string
+          visceral_fat?: number | null
+        }
+        Update: {
+          body_fat?: number | null
+          body_water?: number | null
+          bone_mass?: number | null
+          created_at?: string
+          id?: string
+          metabolic_age?: number | null
+          muscle_mass?: number | null
+          recorded_at?: string
+          user_id?: string
+          visceral_fat?: number | null
+        }
+        Relationships: []
+      }
       body_measurements: {
         Row: {
           biceps: number | null
@@ -546,6 +585,7 @@ export type Database = {
       workout_profiles: {
         Row: {
           ai_form_data: Json | null
+          color: string | null
           created_at: string
           description: string | null
           end_month: string | null
@@ -559,6 +599,7 @@ export type Database = {
         }
         Insert: {
           ai_form_data?: Json | null
+          color?: string | null
           created_at?: string
           description?: string | null
           end_month?: string | null
@@ -572,6 +613,7 @@ export type Database = {
         }
         Update: {
           ai_form_data?: Json | null
+          color?: string | null
           created_at?: string
           description?: string | null
           end_month?: string | null
