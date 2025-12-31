@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Brain, Trash2, AlertTriangle, LogOut, 
   ChevronRight, Database, Sparkles, Sun, Moon,
-  Target, Camera, Pill, Volume2, VolumeX
+  Target, Camera, Pill, Volume2, VolumeX, Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -195,6 +195,13 @@ export const SettingsPage = () => {
           label="Perfis de Treino"
           description="Gerencie seus treinos personalizados"
           onClick={() => navigate('/workout-profiles')}
+        />
+        
+        <MenuItem
+          icon={Trophy}
+          label="Conquistas"
+          description="Veja suas conquistas desbloqueadas"
+          onClick={() => navigate('/achievements')}
         />
       </div>
 

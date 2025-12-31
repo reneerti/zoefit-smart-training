@@ -24,6 +24,15 @@ serve(async (req) => {
     const systemPrompt = `Você é um personal trainer experiente que cria planos de treino personalizados.
 Baseado nas informações do usuário, crie um plano de treino estruturado.
 
+IMPORTANTE PARA FINS DE SEMANA (Sábado e Domingo):
+- Se o usuário escolheu 6 ou 7 dias, inclua treinos para sábado (dayOfWeek: 6) e/ou domingo (dayOfWeek: 0)
+- Para fins de semana, considere tipos de treino especiais:
+  * "Treino Leve/Recuperação" - exercícios de mobilidade, alongamento, yoga
+  * "Treino de Força" - foco em exercícios compostos com menos repetições e mais peso
+  * "Cardio/HIIT" - treinos cardiovasculares ou intervalados
+  * "Treino Funcional" - exercícios funcionais e de core
+- Varie os tipos de treino para manter a motivação
+
 SEMPRE responda em JSON válido com a seguinte estrutura:
 {
   "profileName": "Nome sugestivo para o perfil (ex: 'Foco em Hipertrofia', 'Definição Verão')",
@@ -32,6 +41,7 @@ SEMPRE responda em JSON válido com a seguinte estrutura:
     {
       "name": "Nome do treino (ex: 'Treino A - Peito e Tríceps')",
       "dayOfWeek": 1, // 0=Domingo, 1=Segunda, etc. ou null se não tiver dia fixo
+      "workoutType": "strength", // tipos: strength, cardio, light, functional, hiit
       "youtubeSearch": "termo de busca no youtube para encontrar referência",
       "exercises": [
         {
@@ -55,7 +65,13 @@ SEMPRE responda em JSON válido com a seguinte estrutura:
 - Limitações/Lesões: ${formData.limitations || 'Nenhuma'}
 - Equipamentos disponíveis: ${formData.equipment?.join(', ') || 'Academia completa'}
 
-Crie ${formData.availableDays} treinos diferentes, um para cada dia disponível.`;
+${formData.availableDays >= 6 ? `
+IMPORTANTE: O usuário treina ${formData.availableDays} dias por semana, incluindo fins de semana.
+- Para sábado e/ou domingo, crie treinos mais leves, de cardio ou treinos de força especiais
+- Varie entre: Treino Leve/Recuperação, Cardio/HIIT, Treino de Força, Treino Funcional
+` : ''}
+
+Crie ${formData.availableDays} treinos diferentes, distribuídos ao longo da semana.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
