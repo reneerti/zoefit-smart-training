@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useWorkoutStore } from '@/store/workoutStore';
 import { workoutPlan } from '@/data/workoutData';
 import { useNavigate } from 'react-router-dom';
+import { GamificationCard } from '@/components/Gamification';
 
 const StatCard = ({ 
   icon: Icon, 
@@ -160,6 +161,9 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Gamification Card */}
+      <GamificationCard />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Pill, Plus, Trash2, Check, Clock, Bell, 
-  History, Calendar, Sun, Moon, Dumbbell, AlertCircle
+  History, Calendar, Sun, Moon, Dumbbell, AlertCircle,
+  BarChart3, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,9 +27,10 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format, isToday, startOfDay, endOfDay } from 'date-fns';
+import { format, isToday, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { requestNotificationPermission, sendDeviceNotification, scheduleNotification } from '@/utils/notifications';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface Supplement {
   id: string;
@@ -53,6 +55,183 @@ const TIME_OPTIONS = [
   { id: 'night', label: 'Noite', icon: Moon, description: 'Antes de dormir' },
   { id: 'custom', label: 'Horário específico', icon: Clock, description: 'Escolher hora' },
 ];
+
+// Componente de estatísticas com gráficos
+const SupplementStats = ({ supplements, logs }: { supplements: Supplement[], logs: SupplementLog[] }) => {
+  const weeklyData = useMemo(() => {
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+    const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
+    const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+    
+    return days.map(day => {
+      const dayLogs = logs.filter(log => {
+        const logDate = new Date(log.taken_at);
+        return logDate >= startOfDay(day) && logDate <= endOfDay(day);
+      });
+      
+      const totalActive = supplements.filter(s => s.active).length || 1;
+      const adherence = Math.round((dayLogs.length / totalActive) * 100);
+      
+      return {
+        name: format(day, 'EEE', { locale: ptBR }),
+        fullDate: format(day, 'dd/MM'),
+        taken: dayLogs.length,
+        total: totalActive,
+        adherence: Math.min(adherence, 100),
+        isToday: isToday(day)
+      };
+    });
+  }, [supplements, logs]);
+
+  const monthlyData = useMemo(() => {
+    const today = new Date();
+    const last4Weeks = Array.from({ length: 4 }, (_, i) => {
+      const weekEnd = subDays(today, i * 7);
+      const weekStart = subDays(weekEnd, 6);
+      
+      const weekLogs = logs.filter(log => {
+        const logDate = new Date(log.taken_at);
+        return logDate >= startOfDay(weekStart) && logDate <= endOfDay(weekEnd);
+      });
+      
+      const totalActive = supplements.filter(s => s.active).length || 1;
+      const expectedTotal = totalActive * 7;
+      const adherence = Math.round((weekLogs.length / expectedTotal) * 100);
+      
+      return {
+        name: `Sem ${4 - i}`,
+        fullDate: `${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
+        taken: weekLogs.length,
+        expected: expectedTotal,
+        adherence: Math.min(adherence, 100)
+      };
+    }).reverse();
+    
+    return last4Weeks;
+  }, [supplements, logs]);
+
+  const weeklyAverage = useMemo(() => {
+    const validDays = weeklyData.filter(d => d.taken > 0 || isToday(new Date()));
+    if (validDays.length === 0) return 0;
+    return Math.round(validDays.reduce((acc, d) => acc + d.adherence, 0) / validDays.length);
+  }, [weeklyData]);
+
+  const monthlyAverage = useMemo(() => {
+    if (monthlyData.length === 0) return 0;
+    return Math.round(monthlyData.reduce((acc, d) => acc + d.adherence, 0) / monthlyData.length);
+  }, [monthlyData]);
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <TrendingUp className="w-6 h-6 mx-auto text-primary mb-2" />
+            <p className="text-2xl font-bold">{weeklyAverage}%</p>
+            <p className="text-xs text-muted-foreground">Aderência Semanal</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <BarChart3 className="w-6 h-6 mx-auto text-primary mb-2" />
+            <p className="text-2xl font-bold">{monthlyAverage}%</p>
+            <p className="text-xs text-muted-foreground">Aderência Mensal</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Weekly Chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar size={16} />
+            Esta Semana
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyData}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis hide domain={[0, 100]} />
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-popover border rounded-lg p-2 shadow-lg">
+                          <p className="font-medium">{data.fullDate}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {data.taken}/{data.total} suplementos ({data.adherence}%)
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="adherence" radius={[4, 4, 0, 0]}>
+                  {weeklyData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`}
+                      fill={entry.isToday ? 'hsl(var(--primary))' : entry.adherence >= 80 ? 'hsl(var(--primary) / 0.7)' : entry.adherence >= 50 ? 'hsl(var(--primary) / 0.5)' : 'hsl(var(--muted))'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp size={16} />
+            Últimas 4 Semanas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyData}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis hide domain={[0, 100]} />
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-popover border rounded-lg p-2 shadow-lg">
+                          <p className="font-medium">{data.fullDate}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {data.taken}/{data.expected} doses ({data.adherence}%)
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="adherence" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                  {monthlyData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`}
+                      fill={entry.adherence >= 80 ? 'hsl(var(--primary))' : entry.adherence >= 50 ? 'hsl(var(--primary) / 0.7)' : 'hsl(var(--muted))'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
 export const SupplementsPage = () => {
   const { toast } = useToast();
@@ -357,6 +536,7 @@ export const SupplementsPage = () => {
       <Tabs defaultValue="today" className="w-full">
         <TabsList className="w-full">
           <TabsTrigger value="today" className="flex-1">Hoje</TabsTrigger>
+          <TabsTrigger value="stats" className="flex-1">Gráficos</TabsTrigger>
           <TabsTrigger value="all" className="flex-1">Todos</TabsTrigger>
           <TabsTrigger value="history" className="flex-1">Histórico</TabsTrigger>
         </TabsList>
@@ -418,6 +598,10 @@ export const SupplementsPage = () => {
               </Button>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="stats" className="space-y-4 mt-4">
+          <SupplementStats supplements={supplements} logs={logs} />
         </TabsContent>
 
         <TabsContent value="all" className="space-y-3 mt-4">
