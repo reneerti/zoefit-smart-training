@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, Target, Dumbbell, Clock, 
   AlertCircle, ArrowRight, Loader2, Settings,
-  Brain, ChevronDown
+  Brain, ChevronDown, Lightbulb, CheckCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -64,6 +71,12 @@ export const FitAIPage = () => {
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [aiInsight, setAiInsight] = useState<{
+    hasIssues: boolean;
+    recommendation: string;
+    summary: string;
+  } | null>(null);
+  const [showInsightDialog, setShowInsightDialog] = useState(false);
   
   const [formData, setFormData] = useState({
     goal: '',
@@ -97,6 +110,7 @@ export const FitAIPage = () => {
 
   const generateWorkout = async () => {
     setIsGenerating(true);
+    setAiInsight(null);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -214,12 +228,25 @@ export const FitAIPage = () => {
         })
         .eq('id', formRecord.id);
 
+      // Analisar o treino gerado para insights
+      try {
+        const { data: analysisData } = await supabase.functions.invoke('analyze-workout', {
+          body: { workoutPlan, model: selectedModel }
+        });
+
+        if (analysisData?.analysis) {
+          setAiInsight(analysisData.analysis);
+          setShowInsightDialog(true);
+        }
+      } catch (analysisError) {
+        console.error('Error analyzing workout:', analysisError);
+        // Continue mesmo se a análise falhar
+      }
+
       toast({
         title: 'Treino gerado com sucesso!',
         description: 'Seu perfil de treino personalizado foi criado',
       });
-
-      navigate('/workout-profiles');
 
     } catch (error) {
       console.error('Error generating workout:', error);
@@ -228,9 +255,14 @@ export const FitAIPage = () => {
         description: error instanceof Error ? error.message : 'Tente novamente',
         variant: 'destructive'
       });
-    } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCloseInsight = () => {
+    setShowInsightDialog(false);
+    setIsGenerating(false);
+    navigate('/workout-profiles');
   };
 
   const canProceed = () => {
@@ -373,12 +405,12 @@ export const FitAIPage = () => {
           <CardContent className="space-y-6">
             <div>
               <Label>Quantos dias por semana?</Label>
-              <div className="flex gap-2 mt-2">
-                {[2, 3, 4, 5, 6].map((days) => (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {[2, 3, 4, 5, 6, 7].map((days) => (
                   <button
                     key={days}
                     onClick={() => setFormData(prev => ({ ...prev, availableDays: days }))}
-                    className={`flex-1 py-3 rounded-lg font-bold transition-colors ${
+                    className={`flex-1 min-w-[40px] py-3 rounded-lg font-bold transition-colors ${
                       formData.availableDays === days
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-secondary/50 hover:bg-secondary'
@@ -388,6 +420,9 @@ export const FitAIPage = () => {
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Inclui opção de treino aos fins de semana
+              </p>
             </div>
             
             <div>
@@ -520,6 +555,42 @@ export const FitAIPage = () => {
           </Button>
         )}
       </div>
+
+      {/* AI Insight Dialog */}
+      <Dialog open={showInsightDialog} onOpenChange={setShowInsightDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lightbulb className="text-yellow-500" size={20} />
+              Análise do Treino pela IA
+            </DialogTitle>
+            <DialogDescription>
+              {aiInsight?.summary}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card className={`${aiInsight?.hasIssues ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-green-500/50 bg-green-500/5'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  {aiInsight?.hasIssues ? (
+                    <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                  )}
+                  <p className="text-sm leading-relaxed">
+                    {aiInsight?.recommendation}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Button onClick={handleCloseInsight} className="w-full">
+              <CheckCircle size={16} className="mr-2" />
+              Entendi, ver meu treino
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
