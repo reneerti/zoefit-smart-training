@@ -1,5 +1,6 @@
 import { Dumbbell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -8,6 +9,7 @@ interface LogoProps {
 
 export const Logo = ({ size = 'md', showText = true }: LogoProps) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   
   const sizes = {
     sm: { icon: 20, text: 'text-lg' },
@@ -15,9 +17,14 @@ export const Logo = ({ size = 'md', showText = true }: LogoProps) => {
     lg: { icon: 40, text: 'text-4xl' },
   };
 
+  const handleClick = () => {
+    // Se está autenticado, vai para o dashboard, senão vai para a página inicial
+    navigate(isAuthenticated ? '/dashboard' : '/');
+  };
+
   return (
     <button 
-      onClick={() => navigate('/')}
+      onClick={handleClick}
       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
     >
       <div className="relative">
