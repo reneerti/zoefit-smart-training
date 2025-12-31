@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Scale, Ruler, Plus, ArrowUpRight, ArrowDownRight, Minus, Loader2,
-  Activity, Droplets, Flame, Heart
+  Activity, Droplets, Flame, Heart, TrendingUp, Calendar, ChevronDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,20 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area, ResponsiveContainer, Legend
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface WeightRecord {
   id: string;
@@ -50,11 +58,120 @@ const chartConfig = {
   chest: { label: "Peitoral", color: "hsl(var(--primary))" },
   waist: { label: "Cintura", color: "hsl(var(--accent))" },
   hips: { label: "Quadril", color: "hsl(var(--neon-cyan))" },
-  biceps: { label: "Bíceps", color: "hsl(var(--neon-orange))" },
+  biceps: { label: "Bíceps", color: "hsl(25 100% 55%)" },
   thighs: { label: "Coxas", color: "hsl(280 70% 55%)" },
   muscle_mass: { label: "Massa Muscular", color: "hsl(var(--primary))" },
-  body_fat: { label: "Gordura", color: "hsl(var(--neon-orange))" },
-  body_water: { label: "Água", color: "hsl(var(--neon-cyan))" },
+  body_fat: { label: "Gordura", color: "hsl(25 100% 55%)" },
+  body_water: { label: "Água", color: "hsl(180 100% 45%)" },
+};
+
+// Separate chart for each measurement
+const MeasurementChart = ({ 
+  data, 
+  dataKey, 
+  color, 
+  label, 
+  unit 
+}: { 
+  data: any[]; 
+  dataKey: string; 
+  color: string; 
+  label: string; 
+  unit: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const filteredData = data.filter(d => d[dataKey] !== null && d[dataKey] !== undefined);
+  
+  if (filteredData.length === 0) return null;
+  
+  const latest = filteredData[filteredData.length - 1]?.[dataKey];
+  const first = filteredData[0]?.[dataKey];
+  const diff = latest - first;
+  
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <CardContent className="p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                <div>
+                  <p className="font-medium text-sm">{label}</p>
+                  <p className="text-xs text-muted-foreground">{filteredData.length} registros</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="font-bold">{latest}{unit}</p>
+                  {diff !== 0 && (
+                    <p className={`text-xs flex items-center justify-end gap-0.5 ${
+                      diff < 0 ? 'text-primary' : 'text-neon-orange'
+                    }`}>
+                      {diff > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                      {Math.abs(diff).toFixed(1)}{unit}
+                    </p>
+                  )}
+                </div>
+                <ChevronDown 
+                  size={16} 
+                  className={`text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-3 pb-3 pt-0">
+            <ChartContainer config={chartConfig} className="h-[160px] w-full">
+              <AreaChart data={filteredData}>
+                <defs>
+                  <linearGradient id={`gradient-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }}
+                  tickFormatter={(value) => value}
+                />
+                <YAxis 
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} 
+                  domain={['dataMin - 1', 'dataMax + 1']}
+                  tickFormatter={(value) => `${value}${unit}`}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Area 
+                  type="monotone" 
+                  dataKey={dataKey} 
+                  stroke={color} 
+                  fill={`url(#gradient-${dataKey})`}
+                  strokeWidth={2} 
+                  dot={{ r: 3, fill: color }}
+                />
+              </AreaChart>
+            </ChartContainer>
+            
+            {/* History list */}
+            <div className="mt-3 max-h-32 overflow-y-auto space-y-1">
+              {[...filteredData].reverse().map((item, i) => (
+                <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/50 last:border-0">
+                  <span className="text-muted-foreground">{item.date}</span>
+                  <span className="font-medium">{item[dataKey]}{unit}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
 };
 
 export const EvolutionPage = () => {
@@ -289,13 +406,14 @@ export const EvolutionPage = () => {
           <TabsTrigger value="bio" className="text-xs">Bioimpedância</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="weight" className="mt-4">
+        {/* Weight Tab */}
+        <TabsContent value="weight" className="mt-4 space-y-3">
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Scale size={16} className="text-primary" />
-                  Peso
+                  Histórico de Peso
                 </CardTitle>
                 <Dialog>
                   <DialogTrigger asChild>
@@ -318,7 +436,7 @@ export const EvolutionPage = () => {
             </CardHeader>
             <CardContent>
               {weightChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="h-[180px] w-full">
+                <ChartContainer config={chartConfig} className="h-[220px] w-full">
                   <AreaChart data={weightChartData}>
                     <defs>
                       <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
@@ -328,9 +446,13 @@ export const EvolutionPage = () => {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} />
-                    <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} domain={['dataMin - 2', 'dataMax + 2']} />
+                    <YAxis 
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} 
+                      domain={['dataMin - 2', 'dataMax + 2']}
+                      tickFormatter={(v) => `${v}kg`}
+                    />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Area type="monotone" dataKey="weight" stroke="hsl(var(--primary))" fill="url(#weightGradient)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="weight" stroke="hsl(var(--primary))" fill="url(#weightGradient)" strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--primary))' }} />
                   </AreaChart>
                 </ChartContainer>
               ) : (
@@ -338,131 +460,183 @@ export const EvolutionPage = () => {
                   Nenhum registro
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="measurements" className="mt-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Ruler size={16} className="text-accent" />
-                  Fita Métrica
-                </CardTitle>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline"><Plus size={14} /></Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Registrar Medidas (cm)</DialogTitle></DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div><Label>Peitoral</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.chest} onChange={(e) => setNewMeasurements(prev => ({ ...prev, chest: e.target.value }))} /></div>
-                        <div><Label>Cintura</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.waist} onChange={(e) => setNewMeasurements(prev => ({ ...prev, waist: e.target.value }))} /></div>
-                        <div><Label>Quadril</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.hips} onChange={(e) => setNewMeasurements(prev => ({ ...prev, hips: e.target.value }))} /></div>
-                        <div><Label>Bíceps</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.biceps} onChange={(e) => setNewMeasurements(prev => ({ ...prev, biceps: e.target.value }))} /></div>
-                        <div className="col-span-2"><Label>Coxas</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.thighs} onChange={(e) => setNewMeasurements(prev => ({ ...prev, thighs: e.target.value }))} /></div>
-                      </div>
-                      <Button className="w-full" onClick={addMeasurements} disabled={isAddingMeasurements}>
-                        {isAddingMeasurements ? <Loader2 className="animate-spin" /> : 'Salvar'}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {measurementChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="h-[200px] w-full">
-                  <LineChart data={measurementChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} />
-                    <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="chest" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="waist" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="biceps" stroke="hsl(25 100% 55%)" strokeWidth={2} dot={{ r: 3 }} />
-                  </LineChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-                  Nenhum registro
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="bio" className="mt-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Activity size={16} className="text-primary" />
-                  Bioimpedância
-                </CardTitle>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline"><Plus size={14} /></Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Registrar Bioimpedância</DialogTitle></DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div><Label>Massa Muscular (kg)</Label><Input type="number" step="0.1" value={newBio.muscle_mass} onChange={(e) => setNewBio(prev => ({ ...prev, muscle_mass: e.target.value }))} /></div>
-                        <div><Label>Gordura Corporal (%)</Label><Input type="number" step="0.1" value={newBio.body_fat} onChange={(e) => setNewBio(prev => ({ ...prev, body_fat: e.target.value }))} /></div>
-                        <div><Label>Água Corporal (%)</Label><Input type="number" step="0.1" value={newBio.body_water} onChange={(e) => setNewBio(prev => ({ ...prev, body_water: e.target.value }))} /></div>
-                        <div><Label>Massa Óssea (kg)</Label><Input type="number" step="0.1" value={newBio.bone_mass} onChange={(e) => setNewBio(prev => ({ ...prev, bone_mass: e.target.value }))} /></div>
-                        <div><Label>Gordura Visceral</Label><Input type="number" value={newBio.visceral_fat} onChange={(e) => setNewBio(prev => ({ ...prev, visceral_fat: e.target.value }))} /></div>
-                        <div><Label>Idade Metabólica</Label><Input type="number" value={newBio.metabolic_age} onChange={(e) => setNewBio(prev => ({ ...prev, metabolic_age: e.target.value }))} /></div>
-                      </div>
-                      <Button className="w-full" onClick={addBioimpedance} disabled={isAddingBio}>
-                        {isAddingBio ? <Loader2 className="animate-spin" /> : 'Salvar'}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {bioChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="h-[200px] w-full">
-                  <LineChart data={bioChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} />
-                    <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="muscle_mass" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="body_fat" stroke="hsl(25 100% 55%)" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="body_water" stroke="hsl(180 100% 45%)" strokeWidth={2} dot={{ r: 3 }} />
-                  </LineChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-                  Nenhum registro de bioimpedância
-                </div>
-              )}
               
-              {/* Latest values */}
-              {latestBio && (
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="text-center p-2 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Gordura Visceral</p>
-                    <p className="font-bold">{latestBio.visceral_fat || '--'}</p>
-                  </div>
-                  <div className="text-center p-2 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Massa Óssea</p>
-                    <p className="font-bold">{latestBio.bone_mass ? `${latestBio.bone_mass}kg` : '--'}</p>
-                  </div>
-                  <div className="text-center p-2 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Idade Metab.</p>
-                    <p className="font-bold">{latestBio.metabolic_age || '--'}</p>
-                  </div>
+              {/* Weight History */}
+              {weightRecords.length > 0 && (
+                <div className="mt-4 max-h-40 overflow-y-auto space-y-1 border-t pt-3">
+                  <p className="text-xs text-muted-foreground mb-2">Histórico completo</p>
+                  {[...weightRecords].reverse().map((record, i) => (
+                    <div key={record.id} className="flex items-center justify-between text-xs py-1.5 border-b border-border/50 last:border-0">
+                      <span className="text-muted-foreground">
+                        {format(new Date(record.recorded_at), "dd MMM yyyy", { locale: ptBR })}
+                      </span>
+                      <span className="font-bold">{record.weight} kg</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Measurements Tab */}
+        <TabsContent value="measurements" className="mt-4 space-y-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Ruler size={16} className="text-accent" />
+              Fita Métrica (cm)
+            </h3>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm"><Plus size={14} className="mr-1" /> Registrar</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Registrar Medidas (cm)</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Peitoral</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.chest} onChange={(e) => setNewMeasurements(prev => ({ ...prev, chest: e.target.value }))} /></div>
+                    <div><Label>Cintura</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.waist} onChange={(e) => setNewMeasurements(prev => ({ ...prev, waist: e.target.value }))} /></div>
+                    <div><Label>Quadril</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.hips} onChange={(e) => setNewMeasurements(prev => ({ ...prev, hips: e.target.value }))} /></div>
+                    <div><Label>Bíceps</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.biceps} onChange={(e) => setNewMeasurements(prev => ({ ...prev, biceps: e.target.value }))} /></div>
+                    <div className="col-span-2"><Label>Coxas</Label><Input type="number" step="0.1" placeholder="cm" value={newMeasurements.thighs} onChange={(e) => setNewMeasurements(prev => ({ ...prev, thighs: e.target.value }))} /></div>
+                  </div>
+                  <Button className="w-full" onClick={addMeasurements} disabled={isAddingMeasurements}>
+                    {isAddingMeasurements ? <Loader2 className="animate-spin" /> : 'Salvar'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Individual measurement charts */}
+          <MeasurementChart 
+            data={measurementChartData}
+            dataKey="chest"
+            color="hsl(var(--primary))"
+            label="Peitoral"
+            unit="cm"
+          />
+          <MeasurementChart 
+            data={measurementChartData}
+            dataKey="waist"
+            color="hsl(var(--accent))"
+            label="Cintura"
+            unit="cm"
+          />
+          <MeasurementChart 
+            data={measurementChartData}
+            dataKey="hips"
+            color="hsl(180 100% 45%)"
+            label="Quadril"
+            unit="cm"
+          />
+          <MeasurementChart 
+            data={measurementChartData}
+            dataKey="biceps"
+            color="hsl(25 100% 55%)"
+            label="Bíceps"
+            unit="cm"
+          />
+          <MeasurementChart 
+            data={measurementChartData}
+            dataKey="thighs"
+            color="hsl(280 70% 55%)"
+            label="Coxas"
+            unit="cm"
+          />
+
+          {measurementChartData.length === 0 && (
+            <Card className="p-6 text-center">
+              <Ruler className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhuma medida registrada</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Bioimpedance Tab */}
+        <TabsContent value="bio" className="mt-4 space-y-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Activity size={16} className="text-primary" />
+              Bioimpedância
+            </h3>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm"><Plus size={14} className="mr-1" /> Registrar</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Registrar Bioimpedância</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Massa Muscular (kg)</Label><Input type="number" step="0.1" value={newBio.muscle_mass} onChange={(e) => setNewBio(prev => ({ ...prev, muscle_mass: e.target.value }))} /></div>
+                    <div><Label>Gordura Corporal (%)</Label><Input type="number" step="0.1" value={newBio.body_fat} onChange={(e) => setNewBio(prev => ({ ...prev, body_fat: e.target.value }))} /></div>
+                    <div><Label>Água Corporal (%)</Label><Input type="number" step="0.1" value={newBio.body_water} onChange={(e) => setNewBio(prev => ({ ...prev, body_water: e.target.value }))} /></div>
+                    <div><Label>Massa Óssea (kg)</Label><Input type="number" step="0.1" value={newBio.bone_mass} onChange={(e) => setNewBio(prev => ({ ...prev, bone_mass: e.target.value }))} /></div>
+                    <div><Label>Gordura Visceral</Label><Input type="number" value={newBio.visceral_fat} onChange={(e) => setNewBio(prev => ({ ...prev, visceral_fat: e.target.value }))} /></div>
+                    <div><Label>Idade Metabólica</Label><Input type="number" value={newBio.metabolic_age} onChange={(e) => setNewBio(prev => ({ ...prev, metabolic_age: e.target.value }))} /></div>
+                  </div>
+                  <Button className="w-full" onClick={addBioimpedance} disabled={isAddingBio}>
+                    {isAddingBio ? <Loader2 className="animate-spin" /> : 'Salvar'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Individual bio charts */}
+          <MeasurementChart 
+            data={bioChartData}
+            dataKey="muscle_mass"
+            color="hsl(var(--primary))"
+            label="Massa Muscular"
+            unit="kg"
+          />
+          <MeasurementChart 
+            data={bioChartData}
+            dataKey="body_fat"
+            color="hsl(25 100% 55%)"
+            label="Gordura Corporal"
+            unit="%"
+          />
+          <MeasurementChart 
+            data={bioChartData}
+            dataKey="body_water"
+            color="hsl(180 100% 45%)"
+            label="Água Corporal"
+            unit="%"
+          />
+              
+          {/* Latest bio values */}
+          {latestBio && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Outros Indicadores</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Gordura Visceral</p>
+                    <p className="text-lg font-bold">{latestBio.visceral_fat || '--'}</p>
+                  </div>
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Massa Óssea</p>
+                    <p className="text-lg font-bold">{latestBio.bone_mass ? `${latestBio.bone_mass}kg` : '--'}</p>
+                  </div>
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Idade Metab.</p>
+                    <p className="text-lg font-bold">{latestBio.metabolic_age || '--'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {bioChartData.length === 0 && (
+            <Card className="p-6 text-center">
+              <Activity className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhum registro de bioimpedância</p>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
