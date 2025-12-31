@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Flame, Timer, Trophy, Target, TrendingUp, Calendar, 
-  Dumbbell, Activity, ChevronRight, Sparkles
+  Dumbbell, Activity, ChevronRight, Sparkles, FileText
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useWorkoutStore } from '@/store/workoutStore';
 import { workoutPlan } from '@/data/workoutData';
 import { useNavigate } from 'react-router-dom';
 import { GamificationCard } from '@/components/Gamification';
+import { AchievementsPreview } from '@/components/AchievementsPreview';
 
 const StatCard = ({ 
   icon: Icon, 
@@ -172,10 +173,15 @@ export const Dashboard = () => {
             Acompanhe seu progresso
           </p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/insights')}>
-          <Sparkles size={16} />
-          Ver Insights IA
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/weekly-report')}>
+            <FileText size={16} />
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/insights')}>
+            <Sparkles size={16} />
+            Insights IA
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -209,6 +215,9 @@ export const Dashboard = () => {
           color="accent"
         />
       </div>
+
+      {/* Achievements Preview */}
+      <AchievementsPreview />
 
       {/* Today's Workout */}
       <TodayWorkout />
