@@ -56,6 +56,7 @@ interface ProfileExercise {
 }
 
 const PROFILE_COLORS = [
+  { value: 'default', label: 'Padrão', class: 'bg-card border-border', activeClass: 'ring-primary bg-card border-primary' },
   { value: 'green', label: 'Verde', class: 'bg-profile-green/20 border-profile-green', activeClass: 'ring-profile-green bg-profile-green/30' },
   { value: 'blue', label: 'Azul', class: 'bg-profile-blue/20 border-profile-blue', activeClass: 'ring-profile-blue bg-profile-blue/30' },
   { value: 'purple', label: 'Roxo', class: 'bg-profile-purple/20 border-profile-purple', activeClass: 'ring-profile-purple bg-profile-purple/30' },
@@ -83,7 +84,7 @@ export const WorkoutProfilesEnhancedPage = () => {
     description: '',
     start_month: '',
     end_month: '',
-    color: 'green'
+    color: 'default'
   });
   
   const [newWorkout, setNewWorkout] = useState({
@@ -109,7 +110,7 @@ export const WorkoutProfilesEnhancedPage = () => {
       
       const profilesData = (data || []).map(p => ({
         ...p,
-        color: p.color || 'green'
+        color: p.color || 'default'
       }));
       
       setProfiles(profilesData);
@@ -241,9 +242,9 @@ export const WorkoutProfilesEnhancedPage = () => {
 
       if (error) throw error;
 
-      setProfiles(prev => [{ ...data, color: data.color || 'green' }, ...prev]);
+      setProfiles(prev => [{ ...data, color: data.color || 'default' }, ...prev]);
       setShowCreateDialog(false);
-      setNewProfile({ name: '', description: '', start_month: '', end_month: '', color: 'green' });
+      setNewProfile({ name: '', description: '', start_month: '', end_month: '', color: 'default' });
       
       toast({ title: 'Perfil criado!' });
     } catch (error) {
@@ -390,20 +391,21 @@ export const WorkoutProfilesEnhancedPage = () => {
                 
                 <div>
                   <Label>Cor do Perfil</Label>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 mt-2 flex-wrap">
                     {PROFILE_COLORS.map(color => (
                       <button
                         key={color.value}
                         onClick={() => setNewProfile(prev => ({ ...prev, color: color.value }))}
                         className={`w-8 h-8 rounded-full border-2 transition-all ${
                           newProfile.color === color.value 
-                            ? 'ring-2 ring-offset-2 ring-offset-background' 
+                            ? 'ring-2 ring-offset-2 ring-offset-background ring-primary' 
                             : ''
-                        }`}
-                        style={{ 
+                        } ${color.value === 'default' ? 'bg-card border-border' : ''}`}
+                        style={color.value !== 'default' ? { 
                           backgroundColor: `hsl(var(--profile-${color.value}))`,
                           borderColor: `hsl(var(--profile-${color.value}))`
-                        }}
+                        } : undefined}
+                        title={color.label}
                       />
                     ))}
                   </div>
