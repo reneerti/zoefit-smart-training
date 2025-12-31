@@ -58,6 +58,14 @@ export default {
           orange: "hsl(var(--neon-orange))",
           pink: "hsl(var(--neon-pink))",
         },
+        profile: {
+          green: "hsl(var(--profile-green))",
+          blue: "hsl(var(--profile-blue))",
+          purple: "hsl(var(--profile-purple))",
+          orange: "hsl(var(--profile-orange))",
+          pink: "hsl(var(--profile-pink))",
+          cyan: "hsl(var(--profile-cyan))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

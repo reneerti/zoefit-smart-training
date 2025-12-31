@@ -18,10 +18,13 @@ import { FitAIPage } from "./pages/FitAI";
 import { AISettingsPage } from "./pages/AISettings";
 import { SettingsPage } from "./pages/Settings";
 import { GoalsPage } from "./pages/Goals";
-import { ProgressPhotosPage } from "./pages/ProgressPhotos";
+import { ProgressPhotosEnhancedPage } from "./pages/ProgressPhotosEnhanced";
 import { SupplementsPage } from "./pages/Supplements";
 import { AchievementsPage } from "./pages/Achievements";
 import { SocialPage } from "./pages/Social";
+import { WeeklyReportPage } from "./pages/WeeklyReport";
+import { ResetPasswordPage } from "./pages/ResetPassword";
+import { UpdatePasswordPage } from "./pages/UpdatePassword";
 import { Layout } from "./components/Layout";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -72,10 +75,13 @@ const AppContent = () => {
         <Route path="/ai-settings" element={<ProtectedRoute><AISettingsPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
-        <Route path="/progress-photos" element={<ProtectedRoute><ProgressPhotosPage /></ProtectedRoute>} />
+        <Route path="/progress-photos" element={<ProtectedRoute><ProgressPhotosEnhancedPage /></ProtectedRoute>} />
         <Route path="/supplements" element={<ProtectedRoute><SupplementsPage /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
         <Route path="/social" element={<ProtectedRoute><SocialPage /></ProtectedRoute>} />
+        <Route path="/weekly-report" element={<ProtectedRoute><WeeklyReportPage /></ProtectedRoute>} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
