@@ -26,6 +26,7 @@ import { WeeklyReportPage } from "./pages/WeeklyReport";
 import { ResetPasswordPage } from "./pages/ResetPassword";
 import { UpdatePasswordPage } from "./pages/UpdatePassword";
 import { PhotoComparisonPage } from "./pages/PhotoComparison";
+import { ProfilePage } from "./pages/Profile";
 import { Layout } from "./components/Layout";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -75,6 +76,7 @@ const AppContent = () => {
         <Route path="/fit-ai" element={<ProtectedRoute><FitAIPage /></ProtectedRoute>} />
         <Route path="/ai-settings" element={<ProtectedRoute><AISettingsPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
         <Route path="/progress-photos" element={<ProtectedRoute><ProgressPhotosEnhancedPage /></ProtectedRoute>} />
         <Route path="/photo-comparison" element={<ProtectedRoute><PhotoComparisonPage /></ProtectedRoute>} />
