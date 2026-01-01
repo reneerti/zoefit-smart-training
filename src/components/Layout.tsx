@@ -11,9 +11,8 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Dumbbell, label: 'Treino', path: '/workout' },
   { icon: FolderKanban, label: 'Perfis', path: '/workout-profiles' },
-  { icon: Camera, label: 'Fotos', path: '/progress-photos' },
   { icon: TrendingUp, label: 'Evolução', path: '/evolution' },
-  { icon: Settings, label: 'Config', path: '/settings' },
+  { icon: User, label: 'Perfil', path: '/profile' },
 ];
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
