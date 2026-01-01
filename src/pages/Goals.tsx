@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Target, Plus, Trash2, Check, TrendingUp, 
   TrendingDown, Calendar, AlertCircle, Trophy
@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { AutoGoalSuggestions } from '@/components/AutoGoalSuggestions';
 
 interface Goal {
   id: string;
@@ -54,6 +55,7 @@ export const GoalsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [currentValues, setCurrentValues] = useState<Record<string, number>>({});
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const [newGoal, setNewGoal] = useState({
     type: '',
@@ -62,12 +64,7 @@ export const GoalsPage = () => {
     deadline: ''
   });
 
-  useEffect(() => {
-    fetchGoals();
-    fetchCurrentValues();
-  }, []);
-
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('goals')
@@ -81,6 +78,16 @@ export const GoalsPage = () => {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchGoals();
+    fetchCurrentValues();
+  }, [fetchGoals]);
+
+  const handleGoalCreated = () => {
+    fetchGoals();
+    setRefreshKey(prev => prev + 1);
   };
 
   const fetchCurrentValues = async () => {
@@ -238,6 +245,9 @@ export const GoalsPage = () => {
 
   return (
     <div className="space-y-6 pb-20">
+      {/* Auto Suggestions */}
+      <AutoGoalSuggestions key={refreshKey} onGoalCreated={handleGoalCreated} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
