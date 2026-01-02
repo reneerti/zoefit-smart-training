@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Brain, Trash2, AlertTriangle, LogOut, 
   ChevronRight, Database, Sparkles, Sun, Moon,
-  Target, Camera, Pill, Volume2, VolumeX, Trophy, Users
+  Target, Camera, Pill, Volume2, VolumeX, Trophy, Users,
+  Bell, Clock, Timer, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,11 +26,18 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSettingsStore } from '@/store/settingsStore';
+import { requestNotificationPermission } from '@/utils/notifications';
 
 export const SettingsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { theme, setTheme, soundEnabled, toggleSound } = useSettingsStore();
+  const { 
+    theme, setTheme, 
+    soundEnabled, toggleSound,
+    notifications, updateNotifications,
+    guidedModeEnabled, toggleGuidedMode,
+    restTimerSeconds, setRestTimer
+  } = useSettingsStore();
   const [isResetting, setIsResetting] = useState(false);
 
   const handleLogout = async () => {
@@ -156,6 +167,117 @@ export const SettingsPage = () => {
               </div>
             </div>
             <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Bell size={20} className="text-primary" />
+            Notificações
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Lembrete de Treino</p>
+              <p className="text-sm text-muted-foreground">Receba um lembrete diário</p>
+            </div>
+            <Switch 
+              checked={notifications.workoutReminders} 
+              onCheckedChange={async (checked) => {
+                if (checked) {
+                  const granted = await requestNotificationPermission();
+                  if (!granted) {
+                    toast({
+                      title: 'Permissão necessária',
+                      description: 'Ative as notificações nas configurações do navegador',
+                      variant: 'destructive'
+                    });
+                    return;
+                  }
+                }
+                updateNotifications({ workoutReminders: checked });
+              }} 
+            />
+          </div>
+          
+          {notifications.workoutReminders && (
+            <div className="flex items-center gap-3 pl-4 border-l-2 border-primary/30">
+              <Clock size={16} className="text-muted-foreground" />
+              <Label className="text-sm">Horário:</Label>
+              <Input
+                type="time"
+                value={notifications.reminderTime}
+                onChange={(e) => updateNotifications({ reminderTime: e.target.value })}
+                className="w-28"
+              />
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Alertas de Conquistas</p>
+              <p className="text-sm text-muted-foreground">Quando desbloquear conquistas</p>
+            </div>
+            <Switch 
+              checked={notifications.achievementAlerts} 
+              onCheckedChange={(checked) => updateNotifications({ achievementAlerts: checked })} 
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Lembrete de Suplementos</p>
+              <p className="text-sm text-muted-foreground">Horários dos suplementos</p>
+            </div>
+            <Switch 
+              checked={notifications.supplementReminders} 
+              onCheckedChange={(checked) => updateNotifications({ supplementReminders: checked })} 
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Guided Workout Settings */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Zap size={20} className="text-primary" />
+            Treino Guiado
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Modo Guiado</p>
+              <p className="text-sm text-muted-foreground">Timer e transições automáticas</p>
+            </div>
+            <Switch checked={guidedModeEnabled} onCheckedChange={toggleGuidedMode} />
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Timer size={16} className="text-muted-foreground" />
+                <Label className="text-sm">Tempo de descanso</Label>
+              </div>
+              <span className="text-sm font-medium text-primary">{restTimerSeconds}s</span>
+            </div>
+            <Slider
+              value={[restTimerSeconds]}
+              onValueChange={([value]) => setRestTimer(value)}
+              min={15}
+              max={180}
+              step={15}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>15s</span>
+              <span>180s</span>
+            </div>
           </div>
         </CardContent>
       </Card>
