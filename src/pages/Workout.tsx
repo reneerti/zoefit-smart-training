@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Play, Square, Check, Timer, Dumbbell, ChevronDown, 
-  ChevronUp, ExternalLink, Flame, Trophy, Pause
+  ChevronUp, ExternalLink, Flame, Trophy, Pause, Zap
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useWorkoutStore } from '@/store/workoutStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { workoutPlan } from '@/data/workoutData';
 import { WorkoutDay, Exercise } from '@/types/workout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { updateGamificationAfterWorkout } from '@/utils/achievements';
 import { Celebration, useCelebration } from '@/components/Celebration';
+import { GuidedWorkout } from '@/components/GuidedWorkout';
 
 const formatTime = (seconds: number) => {
   const hrs = Math.floor(seconds / 3600);
@@ -189,11 +191,13 @@ export const WorkoutPage = () => {
   const [pausedTime, setPausedTime] = useState(0);
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [completionMessage, setCompletionMessage] = useState({ title: '', description: '' });
+  const [showGuidedMode, setShowGuidedMode] = useState(false);
   
   const shown15minRef = useRef(false);
   const shown50minRef = useRef(false);
   
   const { currentSession, startWorkout, endWorkout, toggleExercise } = useWorkoutStore();
+  const { guidedModeEnabled } = useSettingsStore();
   const { toast } = useToast();
   const { celebration, celebrate, closeCelebration } = useCelebration();
 
@@ -240,6 +244,12 @@ export const WorkoutPage = () => {
 
   const handleStartWorkout = () => {
     if (selectedDay) {
+      // Se modo guiado está ativo, abre o modo guiado
+      if (guidedModeEnabled) {
+        setShowGuidedMode(true);
+        return;
+      }
+      
       startWorkout(selectedDay.id);
       shown15minRef.current = false;
       shown50minRef.current = false;
@@ -250,6 +260,66 @@ export const WorkoutPage = () => {
         duration: 3000,
       });
     }
+  };
+
+  const handleGuidedComplete = async (completedExercises: string[], elapsedSeconds: number) => {
+    setShowGuidedMode(false);
+    
+    const totalExercises = selectedDay?.blocks.reduce((acc, b) => acc + b.exercises.length, 0) || 0;
+    const completed = completedExercises.length;
+    const isComplete = completed === totalExercises;
+    const percentage = Math.round((completed / totalExercises) * 100);
+    
+    const message = isComplete ? getRandomMessage('complete') : getRandomMessage('partial');
+    
+    let evaluation = '';
+    if (percentage === 100) {
+      evaluation = '⭐⭐⭐⭐⭐ Treino Perfeito!';
+    } else if (percentage >= 80) {
+      evaluation = '⭐⭐⭐⭐ Excelente treino!';
+    } else if (percentage >= 60) {
+      evaluation = '⭐⭐⭐ Bom treino!';
+    } else if (percentage >= 40) {
+      evaluation = '⭐⭐ Treino OK. Tente fazer mais amanhã!';
+    } else {
+      evaluation = '⭐ Todo treino conta! Volte amanhã!';
+    }
+
+    setCompletionMessage({
+      title: message,
+      description: `${completed}/${totalExercises} exercícios (${percentage}%) em ${formatTime(elapsedSeconds)}\n\n${evaluation}`
+    });
+    setShowCompletionDialog(true);
+    
+    // Atualizar gamificação
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const workoutMinutes = Math.floor(elapsedSeconds / 60);
+        const result = await updateGamificationAfterWorkout(user.id, workoutMinutes);
+        
+        if (result.leveledUp) {
+          setTimeout(() => {
+            setShowCompletionDialog(false);
+            celebrate('level_up', `Nível ${result.newLevel}!`, `Você subiu de nível! Continue evoluindo!`);
+          }, 1500);
+        }
+        
+        if (result.newAchievements.length > 0 && !result.leveledUp) {
+          setTimeout(() => {
+            setShowCompletionDialog(false);
+            const achievement = result.newAchievements[0];
+            celebrate('achievement', achievement.name, `+${achievement.xp_reward} XP conquistado!`);
+          }, 1500);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating gamification:', error);
+    }
+  };
+
+  const handleGuidedExit = () => {
+    setShowGuidedMode(false);
   };
 
   const handleToggleExercise = (exerciseId: string) => {
@@ -363,6 +433,15 @@ export const WorkoutPage = () => {
 
   return (
     <>
+      {/* Guided Workout Mode */}
+      {showGuidedMode && selectedDay && (
+        <GuidedWorkout
+          day={selectedDay}
+          onComplete={handleGuidedComplete}
+          onExit={handleGuidedExit}
+        />
+      )}
+      
       {/* Celebration Animation */}
       {celebration && (
         <Celebration
@@ -494,14 +573,21 @@ export const WorkoutPage = () => {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border/50 z-50">
         <div className="max-w-lg mx-auto">
           {!currentSession.isActive ? (
-            <Button 
-              className="w-full" 
-              size="xl"
-              onClick={handleStartWorkout}
-            >
-              <Play size={20} />
-              Iniciar Treino
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                className="w-full" 
+                size="xl"
+                onClick={handleStartWorkout}
+              >
+                {guidedModeEnabled ? <Zap size={20} /> : <Play size={20} />}
+                {guidedModeEnabled ? 'Iniciar Modo Guiado' : 'Iniciar Treino'}
+              </Button>
+              {guidedModeEnabled && (
+                <p className="text-center text-xs text-muted-foreground">
+                  Timer automático entre exercícios
+                </p>
+              )}
+            </div>
           ) : (
             <div className="flex gap-2">
               <Button 
