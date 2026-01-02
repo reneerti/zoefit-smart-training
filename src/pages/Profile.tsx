@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Calendar, Camera, Save, 
-  Trophy, Dumbbell, Clock, Flame
+  Trophy, Dumbbell, Clock, Flame, Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const ProfilePage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, isLoading, updateProfile, uploadAvatar, isUpdating } = useProfile();
   const { data: gamification } = useGamification();
@@ -286,6 +288,16 @@ export const ProfilePage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Settings Link */}
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => navigate('/settings')}
+      >
+        <Settings size={18} className="mr-2" />
+        Configurações do App
+      </Button>
     </div>
   );
 };
